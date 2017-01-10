@@ -17,15 +17,17 @@ type bucket struct {
 type peerStoreImpl struct {
 	buckets []bucket
 	sync.RWMutex
-	peers map[NodeID]Peer
+	peers    map[NodeID]Peer
+	pingFunc func(NodeID) error
 
 	// Own node's ID. We need this to split buckets.
 	own NodeID
 }
 
-func newPeerStore() peerStore {
+func newPeerStore(pingFunc func(NodeID) error) peerStore {
 	return &peerStoreImpl{
-		peers: make(map[NodeID]Peer),
+		peers:    make(map[NodeID]Peer),
+		pingFunc: pingFunc,
 	}
 }
 

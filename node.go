@@ -36,7 +36,6 @@ func newNodeWithFixedID(addr string, id NodeID) (Node, error) {
 		addr:         addr,
 		own:          id,
 		connStore:    newConnStore(),
-		peerStore:    newPeerStore(),
 		valueStore:   newValueStore(),
 		requestStore: newRequestStore(),
 		wg:           &sync.WaitGroup{},
@@ -45,6 +44,8 @@ func newNodeWithFixedID(addr string, id NodeID) (Node, error) {
 		shutdown:     make(chan struct{}),
 		shutdownDone: make(chan struct{}),
 	}
+
+	toReturn.peerStore = newPeerStore(toReturn.Ping)
 
 	go func() {
 		err := toReturn.mainLoop()
@@ -241,6 +242,19 @@ func (n *node) mainLoop() error {
 				err = n.requestStore.fulfill(p.id(), p)
 				if err != nil {
 					log.Errorf("Got response of type %d for unknown rpcID %x", p.packetType(), p.id())
+					return
+				}
+
+				// update kbuckets
+				err = n.peerStore.put(Peer{ID: p.origin(), IP: addr.IP, Port: uint16(addr.Port)})
+				if err != nil {
+					log.Errorln("Unable to update peer store:", err)
+				}
+
+				// update n.conns
+				err = n.connStore.put(p.origin(), addr)
+				if err != nil {
+					log.Errorln("Unable to update connections:", err)
 				}
 				return
 			default:

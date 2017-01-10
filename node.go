@@ -1,7 +1,6 @@
 package kademlia
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math/rand"
 	"net"
@@ -10,87 +9,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 )
-
-const (
-	k     = 3
-	alpha = 2
-)
-
-// NodeID is the 160-bit identifier of a Node.
-type NodeID [20]byte
-
-// NodeIDFromBytes constructs a NodeID from a given byte-slice.
-// It panics if the length of the slice is != 20.
-func NodeIDFromBytes(b []byte) NodeID {
-	if len(b) != 20 {
-		panic("len")
-	}
-
-	var buf [20]byte
-	copy(buf[:], b)
-	return NodeID(buf)
-}
-
-func (n NodeID) bytes() []byte {
-	return n[:]
-}
-
-// NewNodeID creates a new, random NodeID.
-func NewNodeID() NodeID {
-	toReturn := [20]byte{}
-	n, err := rand.Read(toReturn[:])
-	if err != nil {
-		panic(err)
-	}
-	if n != 20 {
-		panic("insufficient randomness")
-	}
-	return NodeID(toReturn)
-}
-
-// Key is a key of a key-value pair.
-type Key [20]byte
-
-// KeyFromBytes constructs a Key from a given byte-slice.
-// It panics if the length of the slice is != 20.
-func KeyFromBytes(b []byte) Key {
-	if len(b) != 20 {
-		panic("len")
-	}
-
-	var buf [20]byte
-	copy(buf[:], b)
-	return Key(buf)
-}
-
-// Peer is a remote node.
-type Peer struct {
-	ID   NodeID
-	IP   net.IP
-	Port uint16
-}
-
-func (p Peer) bytes() []byte {
-	toReturn := make([]byte, 0, 22+net.IPv6len)
-	toReturn = append(toReturn, p.ID[:]...)
-	toReturn = append(toReturn, 0, 0)
-	binary.BigEndian.PutUint16(toReturn[20:22], p.Port)
-	toReturn = append(toReturn, p.IP.To16()...)
-
-	return toReturn
-}
-
-func peerFromBytes(b []byte) Peer {
-	if len(b) < 22+net.IPv4len {
-		panic("len")
-	}
-
-	return Peer{
-		ID:   NodeIDFromBytes(b[:20]),
-		Port: binary.BigEndian.Uint16(b[20:22]),
-		IP:   net.IP(b[22:]),
-	}
-}
 
 // Node is the functionality a Kademlia node provides.
 type Node interface {

@@ -51,7 +51,7 @@ func NewNode(cfg NodeConfig) (Node, error) {
 		bootstrapNodes: cfg.BootstrapNodes,
 	}
 
-	toReturn.peerStore = newPeerStore(toReturn.Ping)
+	toReturn.peerStore = newPeerStore(toReturn.Ping, toReturn.own)
 
 	go func() {
 		err := toReturn.mainLoop()

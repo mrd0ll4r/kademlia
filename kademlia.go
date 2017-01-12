@@ -49,6 +49,11 @@ func (n NodeID) Dist(other NodeID) *big.Int {
 	return XorDist([20]byte(n), [20]byte(other))
 }
 
+// Equal returns true if this nodeID is equal to the others nodeID.
+func (n NodeID) Equal(other NodeID) bool {
+	return bytes.Equal(n.bytes(), other.bytes())
+}
+
 // NewNodeID creates a new, random NodeID.
 func NewNodeID() NodeID {
 	toReturn := [20]byte{}
@@ -65,6 +70,10 @@ func NewNodeID() NodeID {
 // Key is a key of a key-value pair.
 type Key [20]byte
 
+func (k Key) bytes() []byte {
+	return k[:]
+}
+
 // KeyFromBytes constructs a Key from a given byte-slice.
 // It panics if the length of the slice is != 20.
 func KeyFromBytes(b []byte) Key {
@@ -80,10 +89,6 @@ func KeyFromBytes(b []byte) Key {
 // Dist returns the XOR distance from k to other.
 func (k Key) Dist(other Key) *big.Int {
 	return XorDist([20]byte(k), [20]byte(other))
-}
-
-func (k Key) bytes() []byte {
-	return k[:]
 }
 
 // Peer is a remote node.

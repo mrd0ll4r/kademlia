@@ -208,8 +208,11 @@ func newStoreRequestPacket(origin NodeID, destination NodeID, rpcID rpcID, key K
 func (p storeRequestPacket) payload() []byte {
 	toReturn := make([]byte, 0, 1024)
 	toReturn = append(toReturn, p.key[:]...)
-	toReturn = append(toReturn, p.value[:1024]...)
-
+	if len(p.value) > 1024 {
+		toReturn = append(toReturn, p.value[:1024]...)
+	} else {
+		toReturn = append(toReturn, p.value...)
+	}
 	return toReturn
 }
 
@@ -460,7 +463,11 @@ func (p findValueResponsePacket) payload() []byte {
 			toReturn = append(toReturn, peer.bytes()...)
 		}
 	case findValueWithValue:
-		toReturn = append(toReturn, p.value[:1024]...)
+		if len(p.value) > 1024 {
+			toReturn = append(toReturn, p.value[:1024]...)
+		} else {
+			toReturn = append(toReturn, p.value...)
+		}
 	default:
 		panic(fmt.Sprintf("invalid findValueResponseType: %d", p.findValueResponseType))
 	}

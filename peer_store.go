@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"sync"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // max length of bucket-prefix in bit
@@ -140,8 +142,10 @@ func (s *peerStoreImpl) put(p Peer) error {
 			// Bucket contains p
 			b.peers = append(b.peers[:indexPeer], b.peers[indexPeer+1:]...) // Remove peer from slice
 			b.peers = append(b.peers, p)                                    // Append peer
+			log.Debugf("moved Peer %x to the front", p.ID)
 		} else {
 			// Bucket does not contain p: Ping last peer in bucket
+			log.Debugf("bucket does not contain %x", p.ID)
 			if s.pingFunc(b.peers[0].ID) != nil {
 				// Peer does not answer -> kick and move new peer to tail
 				b.peers = append(b.peers[1:], p)
@@ -152,8 +156,12 @@ func (s *peerStoreImpl) put(p Peer) error {
 		}
 	} else {
 		// Bucket is not full
+		log.Debugf("bucket (%d) is not full, will put %x", b.prefix, p.ID)
 		if !containsPeer(b.peers, p) {
+			log.Debugf("bucket does not contain %x, will put", p.ID)
 			b.peers = append(b.peers, p)
+		} else {
+			log.Debugf("bucket contains %x, will not put", p.ID)
 		}
 	}
 
@@ -162,6 +170,7 @@ func (s *peerStoreImpl) put(p Peer) error {
 }
 
 func (b *bucket) getClose(bits []byte, n int) []Peer {
+	log.Debugf("getClose on bucket (%d), leaf=%t, len(prefix)=%d, len(peers)=%d", b.prefix, b.leaf, len(b.prefix), len(b.peers))
 	if b.leaf {
 		return b.peers
 	}
@@ -176,7 +185,7 @@ func (b *bucket) getClose(bits []byte, n int) []Peer {
 		} else {
 			nextBit = 0
 		}
-		morePeers := b.buckets[nextBit].peers
+		morePeers := b.buckets[nextBit].getClose(bits, n)
 
 		for _, p := range morePeers {
 			peers = append(peers, p)

@@ -303,8 +303,38 @@ func (n *node) findClosePeers(key Key) ([]Peer, []Peer, error) {
 	return union[:k], union[k:], nil
 }
 
-func (n *node) FindValue(Key) ([]byte, error) {
-	return []byte{}, nil
+func (n *node) FindValue(key Key) ([]byte, error) {
+	closest, _, err := n.findClosePeers(key)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, peer := range closest {
+		p := newFindValueRequestPacket(n.own, peer.ID, n.nextRPCID(), key)
+		addr := fmt.Sprintf("%s:%d", peer.IP, peer.Port)
+		uaddr, err := net.ResolveUDPAddr("udp", addr)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := n.doRequest(p, uaddr)
+		if err != nil {
+			return nil, err
+		}
+		if resp.packetType() != findValueResponse {
+			return nil, errors.New("response to find value request was not of type findValueResponse")
+		}
+
+		fp, ok := resp.(findValueResponsePacket)
+		if !ok {
+			return nil, errors.New("findValueResponse packet does not coerce to findValueResponsePacket")
+		}
+
+		if fp.findValueResponseType == findValueWithValue {
+			return fp.value, nil
+		}
+	}
+
+	return nil, errors.New("value not found")
 }
 
 func (n *node) bootsrap() error {
